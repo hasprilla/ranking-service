@@ -1,8 +1,23 @@
-FROM gradle:8.5-jdk21 AS builder
-COPY --chown=gradle:gradle . /home/gradle/src
-WORKDIR /home/gradle/src
-RUN gradle build --no-daemon -x test
+# Build stage
+FROM golang:1.23-alpine AS builder
 
-FROM eclipse-temurin:21-jdk-alpine
-COPY --from=builder /home/gradle/src/build/libs/*.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+WORKDIR /app
+
+COPY go.mod go.sum ./
+# Manual copy of go.sum might fail if it doesn't exist yet, but Railway will handle go mod tidy
+RUN go mod download || true
+
+COPY . .
+
+RUN go build -o main .
+
+# Run stage
+FROM alpine:3.19
+
+WORKDIR /app
+
+COPY --from=builder /app/main .
+
+EXPOSE 8080
+
+CMD ["./main"]
