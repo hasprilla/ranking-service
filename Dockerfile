@@ -3,7 +3,9 @@ FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY go.mod ./
+# go.sum might not exist if created manually without go tool
+COPY go.sum* ./
 # Manual copy of go.sum might fail if it doesn't exist yet, but Railway will handle go mod tidy
 RUN go mod download || true
 
