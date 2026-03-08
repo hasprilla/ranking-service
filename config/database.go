@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -33,30 +34,60 @@ func ConnectDB() {
 	fmt.Println("------------------------------------------")
 
 	var dsn string
-	if databaseURL != "" {
+	
+	// Determine core connection parameters
+	host := pgHost
+	if host == "" { host = dbHost }
+	if host == "" { host = "localhost" }
+
+	port := pgPort
+	if port == "" { port = dbPort }
+
+	user := pgUser
+	if user == "" { user = dbUser }
+
+	pass := pgPass
+	if pass == "" { pass = dbPass }
+
+	dbname := pgDB
+	if dbname == "" { dbname = dbName }
+
+	// If we have an explicit dbname, we MUST use it to avoid falling into 'railway' default DB
+	if dbname != "" && (databaseURL != "" || postgresURL != "") {
+		url := databaseURL
+		if url == "" { url = postgresURL }
+		
+		log.Printf("Forcing database name '%s' on provided URL", dbname)
+		
+		// If it's a standard postgres DSN URL, we try to replace the path
+		if strings.HasPrefix(url, "postgres://") || strings.HasPrefix(url, "postgresql://") {
+			// Find the last slash before query params
+			base := url
+			query := ""
+			if idx := strings.Index(url, "?"); idx != -1 {
+				base = url[:idx]
+				query = url[idx:]
+			}
+			
+			lastSlash := strings.LastIndex(base, "/")
+			if lastSlash != -1 {
+				dsn = base[:lastSlash+1] + dbname + query
+			} else {
+				dsn = url // Fallback if format is weird
+			}
+		} else {
+			dsn = url // Not a URL format we readily recognize for path replacement
+		}
+	} else if databaseURL != "" {
 		dsn = databaseURL
-		log.Println("Using DATABASE_URL for connection")
+		log.Println("Using DATABASE_URL as is")
 	} else if postgresURL != "" {
 		dsn = postgresURL
-		log.Println("Using POSTGRES_URL for connection")
+		log.Println("Using POSTGRES_URL as is")
 	} else {
-		host := pgHost
-		if host == "" { host = dbHost }
-		if host == "" { host = "localhost" }
-
-		port := pgPort
-		if port == "" { port = dbPort }
+		// Construct from components
 		if port == "" { port = "5432" }
-
-		user := pgUser
-		if user == "" { user = dbUser }
-
-		pass := pgPass
-		if pass == "" { pass = dbPass }
-
-		dbname := pgDB
-		if dbname == "" { dbname = dbName }
-
+		if dbname == "" { dbname = "postgres" }
 		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC", host, user, pass, dbname, port)
 		log.Printf("Using constructed DSN: host=%s user=%s dbname=%s port=%s", host, user, dbname, port)
 	}
