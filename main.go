@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/hasprilla/ranking-service/middleware"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,6 +23,7 @@ func main() {
 	app.Use(recover.New())
 
 	api := app.Group("/api/v1/ranking")
+	api.Use(middleware.Protected())
 	api.Get("/artists", controllers.GetArtistRanking)
 	api.Get("/fans", controllers.GetFanRanking)
 
