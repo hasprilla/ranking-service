@@ -23,7 +23,11 @@ func main() {
 	app.Use(recover.New())
 
 	api := app.Group("/api/v1/ranking")
+	api.Get("/health", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "UP", "service": "ranking-service"})
 	api.Use(middleware.Protected())
+	})
+
 	api.Get("/artists", controllers.GetArtistRanking)
 	api.Get("/fans", controllers.GetFanRanking)
 
