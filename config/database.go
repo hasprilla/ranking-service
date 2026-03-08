@@ -12,7 +12,6 @@ import (
 var DB *gorm.DB
 
 func ConnectDB() {
-	// Check for common Railway and standard Postgres connection variables
 	databaseURL := os.Getenv("DATABASE_URL")
 	postgresURL := os.Getenv("POSTGRES_URL")
 	pgHost := os.Getenv("PGHOST")
@@ -20,16 +19,18 @@ func ConnectDB() {
 	pgUser := os.Getenv("PGUSER")
 	pgPass := os.Getenv("PGPASSWORD")
 	pgDB := os.Getenv("PGDATABASE")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
 
-	log.Println("--- Environment Variable Check ---")
-	log.Printf("DATABASE_URL: %t (len=%d)", databaseURL != "", len(databaseURL))
-	log.Printf("POSTGRES_URL: %t (len=%d)", postgresURL != "", len(postgresURL))
-	log.Printf("PGHOST: %s", pgHost)
-	log.Printf("PGPORT: %s", pgPort)
-	log.Printf("PGUSER: %s", pgUser)
-	log.Printf("PGDATABASE: %s", pgDB)
-	log.Printf("PGPASSWORD set: %t", pgPass != "")
-	log.Println("---------------------------------")
+	fmt.Println("--- Database Environment Variable Check ---")
+	fmt.Printf("DATABASE_URL: %t (len=%d)\n", databaseURL != "", len(databaseURL))
+	fmt.Printf("POSTGRES_URL: %t (len=%d)\n", postgresURL != "", len(postgresURL))
+	fmt.Printf("PGHOST: %s, PGPORT: %s, PGUSER: %s, PGDATABASE: %s\n", pgHost, pgPort, pgUser, pgDB)
+	fmt.Printf("DB_HOST: %s, DB_PORT: %s, DB_USER: %s, DB_NAME: %s\n", dbHost, dbPort, dbUser, dbName)
+	fmt.Println("------------------------------------------")
 
 	var dsn string
 	if databaseURL != "" {
@@ -38,15 +39,26 @@ func ConnectDB() {
 	} else if postgresURL != "" {
 		dsn = postgresURL
 		log.Println("Using POSTGRES_URL for connection")
-	} else if pgHost != "" && pgUser != "" && pgDB != "" {
-		if pgPort == "" {
-			pgPort = "5432"
-		}
-		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC", pgHost, pgUser, pgPass, pgDB, pgPort)
-		log.Println("Using PG* variables for connection")
 	} else {
-		log.Println("WARNING: No remote database environment variables found. Falling back to localhost.")
-		dsn = "host=localhost user=password= dbname= port=5432 sslmode=disable TimeZone=UTC"
+		host := pgHost
+		if host == "" { host = dbHost }
+		if host == "" { host = "localhost" }
+
+		port := pgPort
+		if port == "" { port = dbPort }
+		if port == "" { port = "5432" }
+
+		user := pgUser
+		if user == "" { user = dbUser }
+
+		pass := pgPass
+		if pass == "" { pass = dbPass }
+
+		dbname := pgDB
+		if dbname == "" { dbname = dbName }
+
+		dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC", host, user, pass, dbname, port)
+		log.Printf("Using constructed DSN: host=%s user=%s dbname=%s port=%s", host, user, dbname, port)
 	}
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
