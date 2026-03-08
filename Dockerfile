@@ -11,6 +11,9 @@ RUN go mod download || true
 
 COPY . .
 
+# Generate/update go.sum inside the container
+RUN go mod tidy
+
 RUN go build -o main .
 
 # Run stage
