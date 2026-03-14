@@ -26,10 +26,13 @@ func main() {
 	api.Get("/health", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "UP", "service": "ranking-service"})
 	})
-	api.Use(middleware.Protected())
-
+	// Public Ranking Endpoints
 	api.Get("/artists", controllers.GetArtistRanking)
 	api.Get("/fans", controllers.GetFanRanking)
+
+	api.Use(middleware.Protected())
+
+	// Protected ranking endpoints (if any in the future)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "UP"})
